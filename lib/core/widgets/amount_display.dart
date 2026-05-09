@@ -44,6 +44,8 @@ class AmountDisplay extends StatelessWidget {
     return Text(
       '$prefix$formatted',
       style: (style ?? Theme.of(context).textTheme.titleMedium)?.copyWith(color: color),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:finanfo/core/theme/app_colors.dart';
 
 /// A styled "Continue with Google" button that follows Google's branding
 /// guidelines: white background in light mode, dark surface in dark mode,
@@ -17,14 +18,14 @@ class GoogleSignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF2D2D2D) : Colors.white;
+    final bgColor = isDark ? Colors.transparent : Colors.white;
     final fgColor = isDark ? Colors.white : const Color(0xFF1F1F1F);
     final borderColor =
-        isDark ? const Color(0xFF5F5F5F) : const Color(0xFFDADCE0);
+        isDark ? AppColors.darkDivider : const Color(0xFFDADCE0);
 
     return SizedBox(
       width: double.infinity,
-      height: 48.h,
+      height: 52.h,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
@@ -32,7 +33,7 @@ class GoogleSignInButton extends StatelessWidget {
           foregroundColor: fgColor,
           side: BorderSide(color: borderColor, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
+            borderRadius: BorderRadius.circular(12.r),
           ),
           padding: EdgeInsets.symmetric(horizontal: 16.w),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:finanfo/core/theme/app_spacing.dart';
 import 'package:finanfo/core/widgets/app_error_widget.dart';
 import 'package:finanfo/core/widgets/app_loading.dart';
@@ -17,6 +18,17 @@ class AlertsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alerts'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            // Alerts is opened via push; fall back to dashboard if needed.
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         actions: [
           if (unreadCount > 0)
             TextButton(

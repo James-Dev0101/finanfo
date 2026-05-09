@@ -17,7 +17,8 @@ class DebtRemoteDatasource {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) =>
-            snap.docs.map((d) => DebtModel.fromJson(d.data()).toDomain()).toList());
+            snap.docs.map((d) => DebtModel.fromJson(d.data()).toDomain()).toList())
+        .handleError((_) {});
   }
 
   Future<void> addDebt(String userId, Debt debt) async {

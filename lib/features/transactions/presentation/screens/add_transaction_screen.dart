@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import 'package:finanfo/core/theme/app_spacing.dart';
-import 'package:finanfo/core/widgets/app_button.dart';
+import 'package:finanfo/core/theme/app_colors.dart';
+import 'package:finanfo/core/widgets/loading_dialog.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/transactions/domain/entities/transaction.dart';
 import 'package:finanfo/features/transactions/domain/entities/transaction_category.dart';
@@ -111,9 +111,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       currency: user.defaultCurrency,
       exchangeRate: 1.0,
       category: _category,
-      note: _noteController.text.trim().isEmpty
-          ? null
-          : _noteController.text.trim(),
+      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
       date: _date,
       isRecurring: _isRecurring,
       recurringRuleId: _isEditing
@@ -127,15 +125,16 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       updatedAt: now,
     );
 
-    if (_isEditing) {
-      await notifier.update(tx);
-    } else {
-      await notifier.add(tx);
-    }
+    await runWithLoading(context, () async {
+      if (_isEditing) {
+        await notifier.update(tx);
+      } else {
+        await notifier.add(tx);
+      }
+    });
 
-    final state = ref.read(addTransactionNotifierProvider);
     if (!mounted) return;
-
+    final state = ref.read(addTransactionNotifierProvider);
     if (state.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -152,23 +151,57 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final notifierState = ref.watch(addTransactionNotifierProvider);
     final isLoading = notifierState.isLoading;
-    final theme = Theme.of(context);
-    final dateFmt = DateFormat('EEE, MMM dd, yyyy');
-    final userCurrency = ref.watch(authStateProvider).valueOrNull?.defaultCurrency ?? 'MMK';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final onBg = isDark ? AppColors.darkOnBackground : AppColors.lightOnBackground;
+    final surface = isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
+    final muted = isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
+    final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final userCurrency =
+        ref.watch(authStateProvider).valueOrNull?.defaultCurrency ?? 'MMK';
+    final dateFmt = DateFormat('EEE, MMM d, yyyy');
 
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Transaction' : 'Add Transaction'),
+        backgroundColor: bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.close_rounded, color: onBg, size: 24.w),
+          onPressed: isLoading ? null : () => context.pop(),
+        ),
+        title: Text(
+          _isEditing ? 'Edit Transaction' : 'New Transaction',
+          style: TextStyle(
+            fontSize: 17.sp,
+            fontWeight: FontWeight.w600,
+            color: onBg,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: isLoading ? null : _save,
+            child: Text(
+              _isEditing ? 'Update' : 'Save',
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+                color: primary,
+              ),
+            ),
+          ),
+          SizedBox(width: 4.w),
+        ],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg.w,
-            vertical: AppSpacing.lg.h,
-          ),
+          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
           children: [
-            // Type toggle
+            // ── Type toggle ──────────────────────────────────────────────────
             TypeToggle(
               selected: _type,
               onChanged: (t) => setState(() {
@@ -177,125 +210,180 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 if (!cats.contains(_category)) _category = cats.first;
               }),
             ),
-            SizedBox(height: AppSpacing.xl.h),
+            SizedBox(height: 28.h),
 
-            // Amount input
+            // ── Amount ───────────────────────────────────────────────────────
             AmountInput(
               controller: _amountController,
               currencyCode: userCurrency,
+              transactionType: _type,
             ),
-            SizedBox(height: AppSpacing.xl.h),
+            SizedBox(height: 28.h),
 
-            // Category or transfer note
-            if (_type != TransactionType.transfer) ...[
-              Text(
-                'Category',
-                style: theme.textTheme.labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
+            // ── Note ─────────────────────────────────────────────────────────
+            _SectionLabel(label: 'NOTE', muted: muted),
+            SizedBox(height: 8.h),
+            _FieldCard(
+              color: surface,
+              child: Row(
+                children: [
+                  Icon(Icons.edit_note_rounded, color: muted, size: 20.w),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: TextField(
+                      controller: _type == TransactionType.transfer
+                          ? _transferNoteController
+                          : _noteController,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        hintText: _type == TransactionType.transfer
+                            ? 'e.g. To savings account'
+                            : 'Add a note…',
+                        hintStyle: TextStyle(fontSize: 14.sp, color: muted),
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
+                      style: TextStyle(fontSize: 14.sp, color: onBg),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: AppSpacing.sm.h),
+            ),
+            SizedBox(height: 20.h),
+
+            // ── Category ─────────────────────────────────────────────────────
+            if (_type != TransactionType.transfer) ...[
+              _SectionLabel(label: 'CATEGORY', muted: muted),
+              SizedBox(height: 10.h),
               CategoryTagSelector(
                 selected: _category,
                 onSelected: (c) => setState(() => _category = c),
                 availableCategories: _categoriesForType,
               ),
-            ] else ...[
-              Text(
-                'Transfer Note',
-                style: theme.textTheme.labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: AppSpacing.sm.h),
-              TextField(
-                controller: _transferNoteController,
-                decoration: InputDecoration(
-                  hintText: 'e.g. To savings account',
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.inputRadius.r),
-                  ),
-                ),
-              ),
+              SizedBox(height: 20.h),
             ],
-            SizedBox(height: AppSpacing.xl.h),
 
-            // Date picker row
-            Text(
-              'Date',
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: AppSpacing.sm.h),
-            InkWell(
+            // ── Date ─────────────────────────────────────────────────────────
+            _SectionLabel(label: 'DATE', muted: muted),
+            SizedBox(height: 8.h),
+            _FieldCard(
+              color: surface,
               onTap: _pickDate,
-              borderRadius:
-                  BorderRadius.circular(AppSpacing.inputRadius.r),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md.w,
-                  vertical: AppSpacing.md.h,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: theme.colorScheme.outline),
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.inputRadius.r),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_rounded,
-                      size: 18.sp,
-                      color: theme.colorScheme.primary,
-                    ),
-                    SizedBox(width: AppSpacing.sm.w),
-                    Text(
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_month_outlined, color: muted, size: 20.w),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
                       dateFmt.format(_date),
-                      style: TextStyle(fontSize: 14.sp),
+                      style: TextStyle(fontSize: 14.sp, color: onBg),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: muted, size: 20.w),
+                ],
+              ),
+            ),
+            SizedBox(height: 20.h),
+
+            // ── Recurring ────────────────────────────────────────────────────
+            _FieldCard(
+              color: surface,
+              child: Row(
+                children: [
+                  Icon(Icons.sync_rounded, color: muted, size: 20.w),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recurring',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: onBg,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          _isRecurring
+                              ? 'Repeats ${_frequency.name}'
+                              : 'Repeat this every month',
+                          style: TextStyle(fontSize: 12.sp, color: muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: _isRecurring,
+                    onChanged: (v) => setState(() => _isRecurring = v),
+                    activeThumbColor: primary,
+                    activeTrackColor: primary.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+
+            // Frequency selector when recurring is on
+            if (_isRecurring) ...[
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Frequency',
+                      style: TextStyle(fontSize: 12.sp, color: muted),
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: RecurringFrequency.values.map((f) {
+                        final isSelected = _frequency == f;
+                        final label = f.name[0].toUpperCase() + f.name.substring(1);
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _frequency = f),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              margin: EdgeInsets.symmetric(horizontal: 3.w),
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? primary.withValues(alpha: 0.18)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8.r),
+                                border: Border.all(
+                                  color: isSelected ? primary : divider,
+                                  width: 1,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: isSelected ? primary : muted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
               ),
-            ),
-            SizedBox(height: AppSpacing.xl.h),
-
-            // Note field
-            Text(
-              'Note',
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: AppSpacing.sm.h),
-            TextField(
-              controller: _noteController,
-              maxLines: 2,
-              decoration: InputDecoration(
-                hintText: 'Optional note…',
-                border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.inputRadius.r),
-                ),
-              ),
-            ),
-            SizedBox(height: AppSpacing.xl.h),
-
-            // Recurring option
-            _RecurringOption(
-              isRecurring: _isRecurring,
-              frequency: _frequency,
-              onToggle: (v) => setState(() => _isRecurring = v),
-              onFrequencyChanged: (f) => setState(() => _frequency = f),
-            ),
-            SizedBox(height: AppSpacing.xxxl.h),
-
-            // Save button
-            AppButton(
-              label: _isEditing ? 'Update' : 'Save',
-              onPressed: isLoading ? null : _save,
-              isLoading: isLoading,
-              icon: Icons.check_rounded,
-            ),
-            SizedBox(height: AppSpacing.xl.h),
+            ],
           ],
         ),
       ),
@@ -303,99 +391,53 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 }
 
-class _RecurringOption extends StatelessWidget {
-  const _RecurringOption({
-    required this.isRecurring,
-    required this.frequency,
-    required this.onToggle,
-    required this.onFrequencyChanged,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-  final bool isRecurring;
-  final RecurringFrequency frequency;
-  final ValueChanged<bool> onToggle;
-  final ValueChanged<RecurringFrequency> onFrequencyChanged;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label, required this.muted});
+
+  final String label;
+  final Color muted;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
+        color: muted,
+      ),
+    );
+  }
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Recurring',
-                  style: theme.textTheme.labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Repeat this transaction automatically',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface
-                        .withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-            Switch(
-              value: isRecurring,
-              onChanged: onToggle,
-            ),
-          ],
+class _FieldCard extends StatelessWidget {
+  const _FieldCard({
+    required this.child,
+    required this.color,
+    this.onTap,
+  });
+
+  final Widget child;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: isRecurring
-              ? Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.md.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Frequency',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: AppSpacing.sm.h),
-                      SegmentedButton<RecurringFrequency>(
-                        segments: const [
-                          ButtonSegment(
-                            value: RecurringFrequency.daily,
-                            label: Text('Daily'),
-                          ),
-                          ButtonSegment(
-                            value: RecurringFrequency.weekly,
-                            label: Text('Weekly'),
-                          ),
-                          ButtonSegment(
-                            value: RecurringFrequency.monthly,
-                            label: Text('Monthly'),
-                          ),
-                        ],
-                        selected: {frequency},
-                        onSelectionChanged: (s) {
-                          if (s.isNotEmpty) onFrequencyChanged(s.first);
-                        },
-                        style: const ButtonStyle(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
+        child: child,
+      ),
     );
   }
 }

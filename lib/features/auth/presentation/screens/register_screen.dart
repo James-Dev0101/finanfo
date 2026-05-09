@@ -7,6 +7,7 @@ import 'package:finanfo/core/error/app_exception.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
 import 'package:finanfo/core/widgets/app_button.dart';
 import 'package:finanfo/core/widgets/app_text_field.dart';
+import 'package:finanfo/core/widgets/loading_dialog.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:finanfo/features/auth/presentation/widgets/currency_onboarding_step.dart';
 import 'package:finanfo/features/auth/presentation/widgets/onboarding_step_indicator.dart';
@@ -76,18 +77,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> _submit() async {
-    await ref.read(authNotifierProvider.notifier).register(
+    await runWithLoading(context, () => ref.read(authNotifierProvider.notifier).register(
           name: _nameCtrl.text.trim(),
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           currency: _selectedCurrency,
-        );
+        ));
     if (!mounted) return;
     final state = ref.read(authNotifierProvider);
-    if (state.hasError) {
-      _showError(state.error!);
-    }
-    // GoRouter redirect handles navigation on successful auth.
+    if (state.hasError) _showError(state.error!);
   }
 
   void _showError(Object error) {
@@ -120,30 +118,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     final isLastStep = _step == _totalSteps - 1;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        if (_step > 0) {
+          _back();
+          return false;
+        }
+        context.go('/login');
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: bgColor,
-        elevation: 0,
-        leading: _step > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                onPressed: isLoading ? null : _back,
-              )
-            : null,
-        title: Text(
-          'Create account',
-          style: TextStyle(
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w600,
-            color: onBg,
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: isLoading
+                ? null
+                : () {
+                    if (_step > 0) {
+                      _back();
+                    } else {
+                      context.go('/login');
+                    }
+                  },
           ),
+          title: Text(
+            'Create account',
+            style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w600,
+              color: onBg,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             children: [
               SizedBox(height: 8.h),
@@ -227,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -253,6 +266,7 @@ class _StepNameEmail extends StatelessWidget {
         isDark ? AppColors.darkOnBackground : AppColors.lightOnBackground;
     final muted =
         isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
+    final iconColor = isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
 
     return Form(
       key: formKey,
@@ -275,9 +289,8 @@ class _StepNameEmail extends StatelessWidget {
           SizedBox(height: 32.h),
           AppTextField(
             controller: nameCtrl,
-            label: 'Full name',
-            hint: 'Jane Doe',
-            prefixIcon: const Icon(Icons.person_outline_rounded),
+            hint: 'Full name',
+            prefixIcon: Icon(Icons.person_outline_rounded, color: iconColor, size: 20),
             textInputAction: TextInputAction.next,
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Name is required';
@@ -285,13 +298,12 @@ class _StepNameEmail extends StatelessWidget {
               return null;
             },
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 14.h),
           AppTextField(
             controller: emailCtrl,
-            label: 'Email',
             hint: 'you@example.com',
             keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(Icons.email_outlined),
+            prefixIcon: Icon(Icons.email_outlined, color: iconColor, size: 20),
             textInputAction: TextInputAction.done,
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Email is required';
@@ -331,6 +343,7 @@ class _StepPasswords extends StatelessWidget {
         isDark ? AppColors.darkOnBackground : AppColors.lightOnBackground;
     final muted =
         isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
+    final iconColor = isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
 
     return Form(
       key: formKey,
@@ -353,15 +366,16 @@ class _StepPasswords extends StatelessWidget {
           SizedBox(height: 32.h),
           AppTextField(
             controller: passwordCtrl,
-            label: 'Password',
             hint: '••••••••',
             obscureText: obscurePassword,
-            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            prefixIcon: Icon(Icons.lock_outline_rounded, color: iconColor, size: 20),
             textInputAction: TextInputAction.next,
             suffixIcon: IconButton(
-              icon: Icon(obscurePassword
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined),
+              icon: Icon(
+                obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: iconColor,
+                size: 20,
+              ),
               onPressed: onTogglePassword,
             ),
             validator: (v) {
@@ -370,18 +384,19 @@ class _StepPasswords extends StatelessWidget {
               return null;
             },
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 14.h),
           AppTextField(
             controller: confirmCtrl,
-            label: 'Confirm password',
-            hint: '••••••••',
+            hint: 'Confirm password',
             obscureText: obscureConfirm,
-            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            prefixIcon: Icon(Icons.lock_outline_rounded, color: iconColor, size: 20),
             textInputAction: TextInputAction.done,
             suffixIcon: IconButton(
-              icon: Icon(obscureConfirm
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined),
+              icon: Icon(
+                obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: iconColor,
+                size: 20,
+              ),
               onPressed: onToggleConfirm,
             ),
             validator: (v) {

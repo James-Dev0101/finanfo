@@ -17,7 +17,8 @@ class AlertRemoteDatasource {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) =>
-            snap.docs.map((d) => AlertModel.fromJson(d.data()).toDomain()).toList());
+            snap.docs.map((d) => AlertModel.fromJson(d.data()).toDomain()).toList())
+        .handleError((_) {});
   }
 
   Future<void> addAlert(String userId, AppAlert alert) async {

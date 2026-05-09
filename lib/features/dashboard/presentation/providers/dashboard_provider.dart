@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
+import 'package:finanfo/features/budget/presentation/providers/budget_provider.dart';
 import 'package:finanfo/features/dashboard/domain/entities/dashboard_summary.dart';
+import 'package:finanfo/features/debt/presentation/providers/debt_provider.dart';
 import 'package:finanfo/features/transactions/domain/entities/transaction.dart';
 import 'package:finanfo/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -16,19 +18,25 @@ DashboardSummary dashboardSummary(Ref ref) {
 
   double income = 0;
   double expenses = 0;
-
   for (final tx in txs) {
     if (tx.type == TransactionType.income) income += tx.amount;
     if (tx.type == TransactionType.expense) expenses += tx.amount;
   }
 
-  final savingsRate = income > 0 ? (income - expenses) / income : 0.0;
+  final budgets = ref.watch(budgetsWithSpendProvider);
+  final totalLimit = budgets.fold(0.0, (s, b) => s + b.budget.limitAmount);
+  final totalSpent = budgets.fold(0.0, (s, b) => s + b.spentAmount);
+  final budgetLeft = (totalLimit - totalSpent).clamp(0.0, double.infinity);
+
+  final iOweTotal = ref.watch(iOweDebtsProvider).fold(0.0, (s, d) => s + d.amount);
+  final owedTotal = ref.watch(owedToMeDebtsProvider).fold(0.0, (s, d) => s + d.amount);
+  final netDebt = owedTotal - iOweTotal;
 
   return DashboardSummary(
-    totalBalance: income - expenses,
     monthIncome: income,
     monthExpenses: expenses,
-    savingsRate: savingsRate.clamp(0.0, 1.0),
+    budgetLeft: budgetLeft,
+    netDebt: netDebt,
     currency: currency,
   );
 }

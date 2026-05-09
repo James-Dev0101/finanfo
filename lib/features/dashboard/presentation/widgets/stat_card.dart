@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:finanfo/core/theme/app_spacing.dart';
-import 'package:finanfo/core/theme/app_text_styles.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class StatCard extends StatelessWidget {
   const StatCard({
@@ -9,46 +8,69 @@ class StatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.iconColor,
-    this.trend,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final Color iconColor;
-  final String? trend;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        child: Padding(
+          padding: EdgeInsets.all(14.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: tt.bodySmall?.copyWith(fontSize: 11.sp),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  child: Icon(icon, color: iconColor, size: 20),
+                  SizedBox(width: 4.w),
+                  Container(
+                    width: 30.w,
+                    height: 30.w,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: iconColor, size: 15.w),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              // FittedBox scales the value text down if it's too wide
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
                 ),
-                const Spacer(),
-                if (trend != null)
-                  Text(trend!, style: AppTextStyles.labelSmall.copyWith(color: scheme.primary)),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(label, style: tt.bodySmall),
-            const SizedBox(height: 2),
-            Text(value, style: AppTextStyles.titleLarge.copyWith(color: scheme.onSurface)),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -8,7 +8,6 @@ import 'package:finanfo/features/auth/presentation/screens/register_screen.dart'
 import 'package:finanfo/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:finanfo/features/transactions/presentation/screens/transactions_screen.dart';
 import 'package:finanfo/features/transactions/presentation/screens/add_transaction_screen.dart';
-import 'package:finanfo/features/reports/presentation/screens/reports_screen.dart';
 import 'package:finanfo/features/alerts/presentation/screens/alerts_screen.dart';
 import 'package:finanfo/features/profile/presentation/screens/profile_screen.dart';
 import 'package:finanfo/features/settings/presentation/screens/settings_screen.dart';
@@ -19,42 +18,47 @@ import 'package:finanfo/features/transactions/domain/entities/transaction.dart';
 
 part 'app_router.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final authState = ref.watch(authStateProvider);
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/dashboard',
     redirect: (BuildContext context, GoRouterState state) {
+      final authState = ref.read(authStateProvider);
       final isAuthenticated = authState.valueOrNull != null;
       final isLoading = authState.isLoading;
       if (isLoading) return null;
-      final isAuthRoute = state.matchedLocation == '/login' ||
+      final isAuthRoute =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/dashboard';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
-        path: '/debt',
-        builder: (context, state) => const DebtScreen(),
+        path: '/alerts',
+        builder: (context, state) => const AlertsScreen(),
       ),
       GoRoute(
-        path: '/budget',
-        builder: (context, state) => const BudgetScreen(),
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+        routes: [
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
         branches: [
+          // 0 — Home / Dashboard
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -63,6 +67,7 @@ GoRouter appRouter(Ref ref) {
               ),
             ],
           ),
+          // 1 — Activity / Transactions
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -84,33 +89,21 @@ GoRouter appRouter(Ref ref) {
               ),
             ],
           ),
+          // 2 — Budget
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                builder: (context, state) => const ReportsScreen(),
+                path: '/budget',
+                builder: (context, state) => const BudgetScreen(),
               ),
             ],
           ),
+          // 3 — Debts
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/alerts',
-                builder: (context, state) => const AlertsScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'settings',
-                    builder: (context, state) => const SettingsScreen(),
-                  ),
-                ],
+                path: '/debt',
+                builder: (context, state) => const DebtScreen(),
               ),
             ],
           ),
@@ -118,4 +111,9 @@ GoRouter appRouter(Ref ref) {
       ),
     ],
   );
+  ref.listen(authStateProvider, (_, _) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => router.refresh());
+  });
+  ref.onDispose(router.dispose);
+  return router;
 }

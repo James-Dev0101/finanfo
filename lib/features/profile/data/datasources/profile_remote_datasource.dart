@@ -1,14 +1,12 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:finanfo/core/config/app_config.dart';
+import 'package:finanfo/core/services/encryption_service.dart';
 import 'package:finanfo/features/profile/data/models/profile_model.dart';
 import 'package:finanfo/features/profile/domain/entities/user_profile.dart';
 
 class ProfileRemoteDatasource {
-  const ProfileRemoteDatasource(this._firestore, this._storage);
+  const ProfileRemoteDatasource(this._firestore);
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
 
   Future<UserProfile?> getProfile(String userId) async {
     final doc = await _firestore
@@ -26,17 +24,10 @@ class ProfileRemoteDatasource {
         .update(updates);
   }
 
+  /// Encrypts avatar bytes with a per-user AES-256 key and stores in Firestore.
   Future<String> uploadAvatar(String userId, List<int> imageBytes) async {
-    final ref = _storage
-        .ref()
-        .child(AppConfig.avatarsPath)
-        .child('$userId.jpg');
-    await ref.putData(
-      Uint8List.fromList(imageBytes),
-      SettableMetadata(contentType: 'image/jpeg'),
-    );
-    final url = await ref.getDownloadURL();
-    await updateProfile(userId, {'photoUrl': url});
-    return url;
+    final encrypted = EncryptionService.encryptBytes(userId, imageBytes);
+    await updateProfile(userId, {'photoUrl': encrypted});
+    return encrypted;
   }
 }

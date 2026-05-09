@@ -13,8 +13,11 @@ class BudgetRemoteDatasource {
       .collection(AppConfig.budgetsCollection);
 
   Stream<List<Budget>> watchBudgets(String userId) {
-    return _col(userId).snapshots().map((snap) =>
-        snap.docs.map((d) => BudgetModel.fromJson(d.data()).toDomain()).toList());
+    return _col(userId)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => BudgetModel.fromJson(d.data()).toDomain()).toList())
+        .handleError((_) {});
   }
 
   Future<void> upsertBudget(String userId, Budget budget) async {

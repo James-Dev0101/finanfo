@@ -1,5 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:finanfo/features/alerts/presentation/providers/alerts_provider.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
+import 'package:finanfo/features/budget/presentation/providers/budget_provider.dart';
+import 'package:finanfo/features/debt/presentation/providers/debt_provider.dart';
+import 'package:finanfo/features/profile/presentation/providers/profile_provider.dart';
+import 'package:finanfo/features/transactions/presentation/providers/transactions_provider.dart';
 
 part 'auth_notifier.g.dart';
 
@@ -42,7 +47,9 @@ class AuthNotifier extends _$AuthNotifier {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).register(
+      () => ref
+          .read(authRepositoryProvider)
+          .register(
             name: name,
             email: email,
             password: password,
@@ -60,6 +67,24 @@ class AuthNotifier extends _$AuthNotifier {
     state = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).signOut(),
     );
+    if (!state.hasError) {
+      _clearUserScopedProviders();
+      ref.invalidate(authStateProvider);
+    }
+  }
+
+  void _clearUserScopedProviders() {
+    ref.invalidate(alertsProvider);
+    ref.invalidate(unreadAlertCountProvider);
+    ref.invalidate(budgetsProvider);
+    ref.invalidate(budgetsWithSpendProvider);
+    ref.invalidate(debtsProvider);
+    ref.invalidate(iOweDebtsProvider);
+    ref.invalidate(owedToMeDebtsProvider);
+    ref.invalidate(userProfileProvider);
+    ref.invalidate(transactionRepositoryProvider);
+    ref.invalidate(transactionsProvider);
+    ref.invalidate(currentMonthTransactionsProvider);
   }
 
   // ---------------------------------------------------------------------------

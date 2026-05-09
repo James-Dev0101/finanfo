@@ -6,6 +6,7 @@ import 'package:finanfo/core/theme/app_colors.dart';
 import 'package:finanfo/core/theme/app_spacing.dart';
 import 'package:finanfo/core/utils/currency_utils.dart';
 import 'package:finanfo/core/widgets/app_loading.dart';
+import 'package:finanfo/core/widgets/loading_dialog.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/profile/presentation/providers/profile_provider.dart';
@@ -39,6 +40,16 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -48,8 +59,8 @@ class ProfileScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const AppLoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (_) => ListView(
+        error: (e, s) => const AppLoadingIndicator(),
+        data: (profile) => ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             // ── Avatar + Name ──────────────────────────────────────────────
@@ -57,15 +68,19 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   AvatarEditor(
-                    photoUrl: user.photoUrl,
+                    uid: user.uid,
+                    photoUrl: profile?.photoUrl ?? user.photoUrl,
                     displayName: user.displayName,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(user.displayName, style: tt.headlineSmall),
                   const SizedBox(height: 4),
-                  Text(user.email,
-                      style: tt.bodyMedium
-                          ?.copyWith(color: scheme.onSurfaceVariant)),
+                  Text(
+                    user.email,
+                    style: tt.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -77,7 +92,9 @@ class ProfileScreen extends ConsumerWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.sm,
+                ),
                 child: Column(
                   children: [
                     ProfileStatRow(
@@ -88,21 +105,27 @@ class ProfileScreen extends ConsumerWidget {
                           ? AppColors.darkSecondary
                           : AppColors.lightSecondary,
                     ),
-                    Divider(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                    Divider(
+                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
                     ProfileStatRow(
                       icon: Icons.arrow_upward_rounded,
                       label: 'Expenses',
                       value: CurrencyUtils.format(expenses, currency),
-                      color:
-                          isDark ? AppColors.darkError : AppColors.lightError,
+                      color: isDark
+                          ? AppColors.darkError
+                          : AppColors.lightError,
                     ),
-                    Divider(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                    Divider(
+                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
                     ProfileStatRow(
                       icon: Icons.savings_outlined,
                       label: 'Saved',
                       value: CurrencyUtils.format(
-                          (income - expenses).clamp(0, double.infinity),
-                          currency),
+                        (income - expenses).clamp(0, double.infinity),
+                        currency,
+                      ),
                       color: isDark
                           ? AppColors.darkPrimary
                           : AppColors.lightPrimary,
@@ -147,11 +170,13 @@ class ProfileScreen extends ConsumerWidget {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign Out'),
               style: OutlinedButton.styleFrom(
-                foregroundColor:
-                    isDark ? AppColors.darkError : AppColors.lightError,
+                foregroundColor: isDark
+                    ? AppColors.darkError
+                    : AppColors.lightError,
                 side: BorderSide(
-                    color: (isDark ? AppColors.darkError : AppColors.lightError)
-                        .withValues(alpha: 0.5)),
+                  color: (isDark ? AppColors.darkError : AppColors.lightError)
+                      .withValues(alpha: 0.5),
+                ),
                 minimumSize: const Size.fromHeight(48),
               ),
               onPressed: () => _signOut(context, ref),
@@ -164,7 +189,10 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _editName(
-      BuildContext context, WidgetRef ref, String current) async {
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) async {
     final ctrl = TextEditingController(text: current);
     final newName = await showDialog<String>(
       context: context,
@@ -177,16 +205,23 @@ class ProfileScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
-              child: const Text('Save')),
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
-    if (newName != null && newName.isNotEmpty) {
-      await ref.read(profileNotifierProvider.notifier).updateDisplayName(newName);
+    if (newName != null && newName.isNotEmpty && context.mounted) {
+      await runWithLoading(
+        context,
+        () => ref
+            .read(profileNotifierProvider.notifier)
+            .updateDisplayName(newName),
+      );
     }
   }
 
@@ -198,11 +233,13 @@ class ProfileScreen extends ConsumerWidget {
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Sign Out')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Sign Out'),
+          ),
         ],
       ),
     );

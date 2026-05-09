@@ -42,7 +42,8 @@ class TransactionRemoteDatasource {
                 return TransactionModel.fromJson(data).toDomain();
               })
               .toList(),
-        );
+        )
+        .handleError((_) {});
   }
 
   Future<List<AppTransaction>> getTransactionsByFilter({

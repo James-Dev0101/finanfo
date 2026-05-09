@@ -54,7 +54,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius.r),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.darkDivider, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius.r),
@@ -182,7 +182,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius.r),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.lightDivider, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius.r),

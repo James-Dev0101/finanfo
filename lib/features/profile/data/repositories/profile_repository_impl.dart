@@ -30,7 +30,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       return await _datasource.uploadAvatar(userId, imageBytes);
     } catch (e) {
-      throw StorageException(e.toString());
+      throw DatabaseException(e.toString());
     }
   }
 }

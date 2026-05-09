@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -114,10 +116,13 @@ class AuthRemoteDatasource {
   // ---------------------------------------------------------------------------
 
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    // Firebase Auth sign-out must always succeed — it controls access.
+    await _auth.signOut();
+    // Google Sign-In sign-out is best-effort; ProviderInstaller / GMS errors
+    // on older devices must not block or fail the overall sign-out.
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
@@ -133,10 +138,53 @@ class AuthRemoteDatasource {
   // ---------------------------------------------------------------------------
 
   Stream<UserModel?> watchAuthState() {
-    return _auth.authStateChanges().asyncMap((firebaseUser) async {
-      if (firebaseUser == null) return null;
-      return _fetchOrBuildUserModel(firebaseUser);
-    });
+    // Uses a StreamController to implement switchMap semantics:
+    // when Firebase Auth emits a new state, the previous Firestore subscription
+    // is cancelled immediately. asyncExpand() does NOT cancel previous inner
+    // streams, which left lingering Firestore listeners that fired
+    // PERMISSION_DENIED on sign-out and blocked the null emission.
+    final controller = StreamController<UserModel?>.broadcast();
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? firestoreSub;
+
+    final authSub = _auth.authStateChanges().listen(
+      (firebaseUser) {
+        firestoreSub?.cancel();
+        firestoreSub = null;
+
+        if (firebaseUser == null) {
+          controller.add(null);
+          return;
+        }
+
+        firestoreSub = _firestore
+            .collection(AppConfig.usersCollection)
+            .doc(firebaseUser.uid)
+            .snapshots()
+            .listen(
+          (snapshot) {
+            if (snapshot.exists && snapshot.data() != null) {
+              controller.add(UserModel.fromJson(snapshot.data()!));
+            } else {
+              controller.add(UserModel.fromFirebaseUser(firebaseUser));
+            }
+          },
+          onError: (_) {
+            // PERMISSION_DENIED fires when the user signs out before
+            // authStateChanges() emits null. Emit null so the router
+            // redirects to login immediately.
+            controller.add(null);
+          },
+        );
+      },
+      onError: controller.addError,
+    );
+
+    controller.onCancel = () {
+      authSub.cancel();
+      firestoreSub?.cancel();
+    };
+
+    return controller.stream;
   }
 
   // ---------------------------------------------------------------------------

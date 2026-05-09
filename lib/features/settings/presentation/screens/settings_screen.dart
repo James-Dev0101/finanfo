@@ -1,3 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finanfo/core/config/app_config.dart';
+import 'package:finanfo/core/widgets/loading_dialog.dart';
+import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/settings/domain/entities/app_settings.dart';
 import 'package:finanfo/features/settings/presentation/providers/settings_provider.dart';
 import 'package:finanfo/features/settings/presentation/widgets/settings_tile.dart';
@@ -66,8 +70,7 @@ class _SettingsBody extends ConsumerWidget {
               ),
             ],
             selected: {settings.themeMode},
-            onSelectionChanged: (modes) =>
-                notifier.updateTheme(modes.first),
+            onSelectionChanged: (modes) => notifier.updateTheme(modes.first),
           ),
         ),
 
@@ -118,20 +121,9 @@ class _SettingsBody extends ConsumerWidget {
         // ── Data ────────────────────────────────────────────────────────
         _SectionHeader(title: 'Data'),
         SettingsTile(
-          icon: Icons.download_outlined,
-          title: 'Export data',
-          subtitle: 'Export your transactions as CSV or PDF',
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Export coming soon')),
-            );
-          },
-        ),
-        SettingsTile(
           icon: Icons.delete_outline,
           title: 'Clear all data',
-          subtitle: 'Permanently delete all transactions',
+          subtitle: 'Permanently delete all transactions, budgets and debts',
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showClearDataDialog(context, ref),
         ),
@@ -148,8 +140,8 @@ class _SettingsBody extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Clear all data?'),
         content: const Text(
-          'This will permanently delete all your transactions, budgets, and '
-          'debts. This action cannot be undone.',
+          'This will permanently delete all your transactions, budgets, debts '
+          'and alerts. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -167,9 +159,35 @@ class _SettingsBody extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      // Placeholder: actual clear-data logic will be wired in when the
-      // corresponding use-case / repository method is implemented.
+    if (confirmed != true || !context.mounted) return;
+
+    final uid = ref.read(authStateProvider).valueOrNull?.uid;
+    if (uid == null) return;
+
+    await runWithLoading(context, () async {
+      final db = FirebaseFirestore.instance;
+      const collections = [
+        AppConfig.transactionsCollection,
+        AppConfig.budgetsCollection,
+        AppConfig.debtsCollection,
+        AppConfig.alertsCollection,
+      ];
+      for (final col in collections) {
+        final snapshot = await db
+            .collection(AppConfig.usersCollection)
+            .doc(uid)
+            .collection(col)
+            .get();
+        if (snapshot.docs.isEmpty) continue;
+        final batch = db.batch();
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+    });
+
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All data cleared')),
       );
