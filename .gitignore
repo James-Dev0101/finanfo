@@ -46,3 +46,12 @@ app.*.map.json
 
 # Local Firebase dart-define values. Keep the real file out of git.
 firebase_config.json
+
+# Firebase native config files — contain API keys, never commit these.
+google-services.json
+GoogleService-Info.plist
+
+# Android release signing — never commit keystore or passwords.
+*.jks
+*.keystore
+android/key.properties

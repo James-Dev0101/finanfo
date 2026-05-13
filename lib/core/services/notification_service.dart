@@ -23,6 +23,27 @@ class NotificationService {
     await _plugin.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
+
+    // Create Android notification channels (required on Android 8.0+).
+    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'finanfo_channel',
+        'Finanfo Notifications',
+        description: 'Budget and expense alerts',
+        importance: Importance.high,
+      ),
+    );
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'finanfo_reminders',
+        'Finanfo Reminders',
+        description: 'Scheduled reminders for debts and recurring items',
+        importance: Importance.defaultImportance,
+      ),
+    );
+
     _initialized = true;
   }
 

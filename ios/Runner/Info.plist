@@ -26,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Finanfo needs camera access to take a photo for your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Finanfo needs access to your photo library so you can choose a profile picture.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Finanfo needs permission to save images to your photo library.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Finanfo sends budget alerts and reminders to help you stay on track with your finances.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
