@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:finanfo/core/config/app_config.dart';
 import 'package:finanfo/features/auth/data/models/user_model.dart';
@@ -38,22 +39,28 @@ class AuthRemoteDatasource {
   // ---------------------------------------------------------------------------
 
   Future<UserModel> signInWithGoogle() async {
-    final googleAccount = await _googleSignIn.signIn();
-    if (googleAccount == null) {
-      throw FirebaseAuthException(
-        code: 'sign-in-cancelled',
-        message: 'Google sign-in was cancelled by the user.',
+    late final User firebaseUser;
+
+    if (kIsWeb) {
+      final userCredential =
+          await _auth.signInWithPopup(GoogleAuthProvider());
+      firebaseUser = userCredential.user!;
+    } else {
+      final googleAccount = await _googleSignIn.signIn();
+      if (googleAccount == null) {
+        throw FirebaseAuthException(
+          code: 'sign-in-cancelled',
+          message: 'Google sign-in was cancelled by the user.',
+        );
+      }
+      final googleAuth = await googleAccount.authentication;
+      final oauthCredential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+      firebaseUser = userCredential.user!;
     }
-
-    final googleAuth = await googleAccount.authentication;
-    final oauthCredential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    final userCredential = await _auth.signInWithCredential(oauthCredential);
-    final firebaseUser = userCredential.user!;
 
     // For new Google users, seed a Firestore document.
     final docRef =

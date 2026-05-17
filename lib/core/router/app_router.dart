@@ -18,10 +18,19 @@ import 'package:finanfo/features/transactions/domain/entities/transaction.dart';
 
 part 'app_router.g.dart';
 
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen(authStateProvider, (_, _) => notifyListeners());
+  }
+}
+
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
+  final notifier = _RouterNotifier(ref);
+
   final router = GoRouter(
     initialLocation: '/dashboard',
+    refreshListenable: notifier,
     redirect: (BuildContext context, GoRouterState state) {
       final authState = ref.read(authStateProvider);
       final isAuthenticated = authState.valueOrNull != null;
@@ -111,9 +120,9 @@ GoRouter appRouter(Ref ref) {
       ),
     ],
   );
-  ref.listen(authStateProvider, (_, _) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => router.refresh());
+  ref.onDispose(() {
+    notifier.dispose();
+    router.dispose();
   });
-  ref.onDispose(router.dispose);
   return router;
 }

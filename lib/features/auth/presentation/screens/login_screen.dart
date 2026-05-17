@@ -44,10 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
-    await runWithLoading(
-      context,
-      () => ref.read(authNotifierProvider.notifier).signInWithGoogle(),
-    );
+    await ref.read(authNotifierProvider.notifier).signInWithGoogle();
     if (!mounted) return;
     final state = ref.read(authNotifierProvider);
     if (state.hasError) _showError(state.error!);
@@ -295,7 +292,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           SizedBox(height: 24.h),
                           GoogleSignInButton(
                             onPressed: isLoading ? null : _signInWithGoogle,
-                            isLoading: false,
+                            isLoading: isLoading,
                           ),
                           SizedBox(height: 28.h),
                           Row(
