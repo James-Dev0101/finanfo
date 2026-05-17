@@ -12,26 +12,29 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
+
+# Flutter project metadata (machine-generated, not useful for collaborators)
+.metadata
+devtools_options.yaml
 
 # Symbolication related
 app.*.symbols
@@ -39,17 +42,18 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# Local Firebase dart-define values. Keep the real file out of git.
-firebase_config.json
+android/local.properties
 
 # Firebase native config files — contain API keys, never commit these.
 google-services.json
 GoogleService-Info.plist
+
+# Local Firebase dart-define values.
+firebase_config.json
 
 # Android release signing — never commit keystore or passwords.
 *.jks
