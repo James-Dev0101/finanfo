@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
-import 'package:finanfo/core/utils/currency_utils.dart';
 import 'package:finanfo/core/widgets/confirmation_dialog.dart';
 import 'package:finanfo/core/widgets/loading_dialog.dart';
+import 'package:finanfo/core/widgets/tappable_amount.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/debt/domain/entities/debt.dart';
 import 'package:finanfo/features/debt/presentation/providers/debt_provider.dart';
@@ -175,7 +175,8 @@ class _DebtList extends StatelessWidget {
             Expanded(
               child: _SummaryCard(
                 label: 'I OWE',
-                amount: CurrencyUtils.format(iOweTotal, currency, compact: true),
+                amount: iOweTotal,
+                currency: currency,
                 bgColor: errorColor.withValues(alpha: 0.18),
                 labelColor: errorColor.withValues(alpha: 0.7),
                 amountColor: errorColor,
@@ -185,7 +186,8 @@ class _DebtList extends StatelessWidget {
             Expanded(
               child: _SummaryCard(
                 label: 'OWED TO ME',
-                amount: CurrencyUtils.format(owedTotal, currency, compact: true),
+                amount: owedTotal,
+                currency: currency,
                 bgColor: secondaryColor.withValues(alpha: 0.15),
                 labelColor: secondaryColor.withValues(alpha: 0.8),
                 amountColor: secondaryColor,
@@ -243,13 +245,15 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.label,
     required this.amount,
+    required this.currency,
     required this.bgColor,
     required this.labelColor,
     required this.amountColor,
   });
 
   final String label;
-  final String amount;
+  final double amount;
+  final String currency;
   final Color bgColor;
   final Color labelColor;
   final Color amountColor;
@@ -275,8 +279,9 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8.h),
-          Text(
-            amount,
+          TappableAmount(
+            amount: amount,
+            currency: currency,
             style: TextStyle(
               fontSize: 24.sp,
               fontWeight: FontWeight.w700,
@@ -432,12 +437,16 @@ class _DebtCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  CurrencyUtils.format(debt.amount, currency, compact: true),
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
-                    color: amountColor,
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 0.4.sw),
+                  child: TappableAmount(
+                    amount: debt.amount,
+                    currency: currency,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      color: amountColor,
+                    ),
                   ),
                 ),
                 SizedBox(height: 4.h),

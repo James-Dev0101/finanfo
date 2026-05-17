@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
-import 'package:finanfo/core/utils/currency_utils.dart';
+import 'package:finanfo/core/widgets/tappable_amount.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/budget/domain/entities/budget.dart';
 import 'package:finanfo/features/budget/presentation/providers/budget_provider.dart';
@@ -96,9 +96,6 @@ class _BudgetRow extends StatelessWidget {
       orElse: () => TransactionCategory.other,
     );
 
-    final spent = CurrencyUtils.format(item.spentAmount, currency, compact: true);
-    final limit = CurrencyUtils.format(item.budget.limitAmount, currency, compact: true);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -119,16 +116,16 @@ class _BudgetRow extends StatelessWidget {
             Expanded(
               child: Text(cat.label, style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
             ),
-            Flexible(
-              child: Text(
-                '$spent / $limit',
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 0.38.sw),
+              child: TappableAmountPair(
+                amount1: item.spentAmount,
+                amount2: item.budget.limitAmount,
+                currency: currency,
                 style: tt.bodySmall?.copyWith(
                   color: item.isOverBudget ? barColor : null,
                   fontWeight: FontWeight.w500,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
               ),
             ),
           ],

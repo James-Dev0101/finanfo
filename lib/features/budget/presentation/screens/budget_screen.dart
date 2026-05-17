@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
 import 'package:finanfo/core/utils/currency_utils.dart';
 import 'package:finanfo/core/widgets/confirmation_dialog.dart';
+import 'package:finanfo/core/widgets/tappable_amount.dart';
 import 'package:finanfo/core/widgets/loading_dialog.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/budget/domain/entities/budget.dart';
@@ -188,7 +189,7 @@ class _BudgetList extends StatelessWidget {
 // Monthly overview card
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _OverviewCard extends StatelessWidget {
+class _OverviewCard extends StatefulWidget {
   const _OverviewCard({
     required this.isDark,
     required this.monthLabel,
@@ -210,83 +211,100 @@ class _OverviewCard extends StatelessWidget {
   final String currency;
 
   @override
+  State<_OverviewCard> createState() => _OverviewCardState();
+}
+
+class _OverviewCardState extends State<_OverviewCard> {
+  bool _showFull = false;
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = widget.isDark;
     final cardColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
     final onBg = isDark ? AppColors.darkOnBackground : AppColors.lightOnBackground;
     final muted = isDark ? AppColors.darkOnSurfaceMuted : AppColors.lightOnSurfaceMuted;
     final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
     final barBg = primary.withValues(alpha: 0.18);
 
-    final spentFmt = CurrencyUtils.format(totalSpent, currency, compact: true);
-    final limitFmt = CurrencyUtils.format(totalLimit, currency, compact: true);
-    final remainFmt = CurrencyUtils.format(remaining, currency, compact: true);
+    final spentFmt = CurrencyUtils.format(widget.totalSpent, widget.currency, compact: !_showFull);
+    final limitFmt = CurrencyUtils.format(widget.totalLimit, widget.currency, compact: !_showFull);
+    final remainFmt = CurrencyUtils.format(widget.remaining, widget.currency, compact: !_showFull);
 
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            monthLabel,
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.8,
-              color: muted,
+    return GestureDetector(
+      onTap: () => setState(() => _showFull = !_showFull),
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.monthLabel,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+                color: muted,
+              ),
             ),
-          ),
-          SizedBox(height: 8.h),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: spentFmt,
-                  style: TextStyle(
-                    fontSize: 26.sp,
-                    fontWeight: FontWeight.w700,
-                    color: onBg,
-                  ),
+            SizedBox(height: 8.h),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: spentFmt,
+                      style: TextStyle(
+                        fontSize: 26.sp,
+                        fontWeight: FontWeight.w700,
+                        color: onBg,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '  of $limitFmt spent',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w400,
+                        color: muted,
+                      ),
+                    ),
+                  ],
                 ),
-                TextSpan(
-                  text: '  of $limitFmt spent',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                    color: muted,
+              ),
+            ),
+            SizedBox(height: 14.h),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6.r),
+              child: LinearProgressIndicator(
+                value: widget.progress,
+                minHeight: 8.h,
+                backgroundColor: barBg,
+                valueColor: AlwaysStoppedAnimation<Color>(primary),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${widget.pctUsed} used',
+                    style: TextStyle(fontSize: 12.sp, color: muted)),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text('$remainFmt left',
+                        style: TextStyle(fontSize: 12.sp, color: muted)),
                   ),
                 ),
               ],
             ),
-          ),
-          SizedBox(height: 14.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6.r),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8.h,
-              backgroundColor: barBg,
-              valueColor: AlwaysStoppedAnimation<Color>(primary),
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$pctUsed used',
-                style: TextStyle(fontSize: 12.sp, color: muted),
-              ),
-              Text(
-                '$remainFmt left',
-                style: TextStyle(fontSize: 12.sp, color: muted),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -337,9 +355,6 @@ class _BudgetCard extends StatelessWidget {
       orElse: () => TransactionCategory.other,
     );
 
-    final spentFmt = CurrencyUtils.format(item.spentAmount, currency, compact: true);
-    final limitFmt = CurrencyUtils.format(item.budget.limitAmount, currency, compact: true);
-
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -354,7 +369,6 @@ class _BudgetCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Category icon
                 Container(
                   width: 38.w,
                   height: 38.w,
@@ -367,7 +381,6 @@ class _BudgetCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 12.w),
-                // Category name
                 Expanded(
                   child: Text(
                     cat.label,
@@ -378,10 +391,14 @@ class _BudgetCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Spent / Limit
-                Text(
-                  '$spentFmt / $limitFmt',
-                  style: TextStyle(fontSize: 12.sp, color: muted),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 0.38.sw),
+                  child: TappableAmountPair(
+                    amount1: item.spentAmount,
+                    amount2: item.budget.limitAmount,
+                    currency: currency,
+                    style: TextStyle(fontSize: 12.sp, color: muted),
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 // Percentage

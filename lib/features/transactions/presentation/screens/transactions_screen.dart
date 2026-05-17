@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
-import 'package:finanfo/core/utils/currency_utils.dart';
 import 'package:finanfo/core/widgets/loading_dialog.dart';
+import 'package:finanfo/core/widgets/tappable_amount.dart';
 import 'package:finanfo/core/utils/date_utils.dart';
 import 'package:finanfo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:finanfo/features/transactions/domain/entities/transaction.dart';
@@ -253,8 +253,6 @@ class _TransactionList extends StatelessWidget {
         final totalColor = isPositive
             ? (isDark ? AppColors.darkSecondary : AppColors.lightSecondary)
             : (isDark ? AppColors.darkError : AppColors.lightError);
-        final totalStr =
-            '${isPositive ? '+' : ''}${CurrencyUtils.format(total.abs(), currency, compact: true)}';
         final muted = isDark
             ? AppColors.darkOnSurfaceMuted
             : AppColors.lightOnSurfaceMuted;
@@ -281,8 +279,10 @@ class _TransactionList extends StatelessWidget {
                         letterSpacing: 0.8,
                       ),
                     ),
-                    Text(
-                      totalStr,
+                    TappableAmount(
+                      amount: total.abs(),
+                      currency: currency,
+                      prefix: isPositive ? '+' : '-',
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,

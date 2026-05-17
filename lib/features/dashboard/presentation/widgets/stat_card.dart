@@ -5,14 +5,14 @@ class StatCard extends StatelessWidget {
   const StatCard({
     super.key,
     required this.label,
-    required this.value,
+    required this.valueWidget,
     required this.icon,
     required this.iconColor,
     this.onTap,
   });
 
   final String label;
-  final String value;
+  final Widget valueWidget;
   final IconData icon;
   final Color iconColor;
   final VoidCallback? onTap;
@@ -54,12 +54,10 @@ class StatCard extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 10.h),
-              // FittedBox scales the value text down if it's too wide
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
+                child: DefaultTextStyle(
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.w700,
@@ -67,6 +65,8 @@ class StatCard extends StatelessWidget {
                     letterSpacing: -0.3,
                   ),
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  child: valueWidget,
                 ),
               ),
             ],
