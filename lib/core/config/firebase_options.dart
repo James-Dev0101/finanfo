@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart'
 
 class DefaultFirebaseOptions {
   static bool get hasConfiguredApiKey {
-    if (kIsWeb) return false;
+    if (kIsWeb) return true;
     return switch (defaultTargetPlatform) {
       TargetPlatform.android => _androidApiKey.isNotEmpty,
       TargetPlatform.iOS => _iosApiKey.isNotEmpty,
@@ -18,11 +18,7 @@ class DefaultFirebaseOptions {
   }
 
   static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web.',
-      );
-    }
+    if (kIsWeb) return web;
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
@@ -74,4 +70,14 @@ class DefaultFirebaseOptions {
       iosBundleId: 'com.example.finanfo',
     );
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyD_PLV4v0upsDs0swuN4Z6N5kKqHP1bQ8o',
+    appId: '1:652481845275:web:8db8889a6871b62b6dc0be',
+    messagingSenderId: '652481845275',
+    projectId: 'finanfo',
+    authDomain: 'finanfo.firebaseapp.com',
+    storageBucket: 'finanfo.firebasestorage.app',
+    measurementId: 'G-703ETE3XDE',
+  );
 }
