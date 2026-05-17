@@ -32,9 +32,7 @@
 	<string>Finanfo needs access to your photo library so you can choose a profile picture.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Finanfo needs permission to save images to your photo library.</string>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>Finanfo sends budget alerts and reminders to help you stay on track with your finances.</string>
-	<key>UIApplicationSceneManifest</key>
+<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>

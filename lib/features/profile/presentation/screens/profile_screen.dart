@@ -2,6 +2,7 @@ import 'package:currency_picker/currency_picker.dart' hide CurrencyUtils;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:finanfo/core/theme/app_colors.dart';
 import 'package:finanfo/core/theme/app_spacing.dart';
 import 'package:finanfo/core/utils/currency_utils.dart';
@@ -180,6 +181,26 @@ class ProfileScreen extends ConsumerWidget {
                 minimumSize: const Size.fromHeight(48),
               ),
               onPressed: () => _signOut(context, ref),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Version ────────────────────────────────────────────────────
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snap) {
+                final version = snap.hasData
+                    ? 'v${snap.data!.version}+${snap.data!.buildNumber}'
+                    : '';
+                return Center(
+                  child: Text(
+                    'Finanfo $version',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
